@@ -15,8 +15,8 @@ public class JointRotator : ScriptableObject
     {
         float[] mf = new float[]
         {
-            1, 0, 0,
             0, -1, 0,
+            -1, 0, 0,
             0, 0, -1
         };
 

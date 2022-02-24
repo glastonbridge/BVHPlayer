@@ -12,6 +12,12 @@ public class SkeletonAnimator : MonoBehaviour
   [Header("BVH debugging")]
   public int debugFrame;
 
+  [Header("Bone debugging")]
+  public string debugBone;
+  public float debugBoneX;
+  public float debugBoneY;
+  public float debugBoneZ;
+
   private Transform targetSkeleton;
   private BVHSkeleton skeleton;
   private List<BVHFrame> frames;
@@ -24,7 +30,7 @@ public class SkeletonAnimator : MonoBehaviour
   {
     // This maps bone names in BVH to bones in the model. For CMU BVH it should be boneMappingsDirect, for MocapNET BVH it will be boneMappingsBVH
     // For anything else you can figure it out yourself by looking at the skeleton hierarchies in the BVH file and in your unity model tree.
-    boneMappings = boneMappingsDirect;
+    boneMappings = boneMappingsBVH;
     
     ParseBVH parser = new ParseBVH(new StreamReader(BvhName));
     parser.parse();
@@ -50,33 +56,66 @@ public class SkeletonAnimator : MonoBehaviour
   void Update()
   {
     BVHFrame frame;
-    Frame = debugFrame > 0 ? debugFrame : ((Frame + 1) / framedivider) % frames.Count;
 
-    frame = frames[Frame];
-    if (vid != null)
+
+    if (isBoneDebugging())
     {
-      vid.frame = Frame;
+      // TODO:
+      // iterate over entire skeleton, setting values to 0
+      // if bone = debugBone then set the rotations as one would in BVHSkeleton
+      frame = new BVHFrame();
+      Frame = 0;
+      generateDebugFrameRecursively(skeleton, frame);
     }
+    else
+    {
 
-    applySkeleton(targetSkeleton, skeleton, frame, new Vector3(0, 0, 0));
+      int localFrame = debugFrame > 0 ? debugFrame - 1 : (int)((Frame) / framedivider) % frames.Count;
+
+      frame = frames[localFrame];
+      if (vid != null)
+      {
+        vid.frame = localFrame;
+      }
+
+    }
+      applySkeleton(targetSkeleton, skeleton, frame, Quaternion.identity);
+      ++Frame;
   }
 
-  private void applySkeleton(Transform targetSkeleton, BVHSkeleton skel, BVHFrame frame, Vector3 parentRot)
+  private void applySkeleton(Transform targetSkeleton, BVHSkeleton skel, BVHFrame frame, Quaternion parentRot)
   {
     if (boneMappings.ContainsKey(skel.name))
     {
       Transform target = targetSkeleton;
-      Vector3 currentRot = parentRot;
+      Quaternion currentRot = parentRot;
       string targetName = boneMappings[skel.name];
       if (targetName != null)
       {
         target = findRecursively(targetSkeleton, targetName);
         try
         {
-          Quaternion rot = frame.joints[skel.name].rot;
-          currentRot = parentRot + rot.eulerAngles;
-          target.transform.eulerAngles = initial[skel.name].eulerAngles + currentRot;
+          /** 
+           * Oh gods this is driving me nuts
+           * 
+           * there is the t-pose reference frame, which is what the BVH uses, everything is 0 at t-pose and has the same axes
+           * there are child rotation frames, which are the t-pose rotations, applied recursively. the child rotation is applied, followed by
+           * the parent.
+           * 
+           * 
+           * The rotation has to happen in the t-pose reference frame
+           * But it then has to be rotated by the parent rotation
+           * The parent rotation that it passes to children must then be 
+           *   * applicable in the t-pose reference frame
+           *   * not be clouded by the initial value we used to map onto the Unity model
+           *   
+           * Anything that does not include an initial, can be considered "pure bvh" and we only apply its rotation to world space
+           * at the last minute, by combining with initial values
+           * 
+           */
+          currentRot = frame.joints[skel.name].rot * parentRot;
 
+          target.transform.rotation = currentRot * initial[skel.name];
         }
         catch (KeyNotFoundException)
         {
@@ -87,6 +126,7 @@ public class SkeletonAnimator : MonoBehaviour
       {
         target = targetSkeleton;
       }
+      if (parentRot == currentRot) Debug.Log("skel " + skel.name + " has identical parent rot");
       if (skel.joints != null) foreach (KeyValuePair<string, BVHSkeleton> skel2 in skel.joints)
         {
           applySkeleton(target, skel2.Value, frame, currentRot);
@@ -212,4 +252,37 @@ public class SkeletonAnimator : MonoBehaviour
         { "rFoot", "RightFoot" }
     };
 
+
+  private bool isBoneDebugging()
+  {
+    return debugBone != null && !debugBone.Equals("");
+  }
+
+  private void generateDebugFrameRecursively(BVHSkeleton skel, BVHFrame currentFrame)
+  {
+    bool isTargetBone = skel.name == debugBone;
+    if (skel.name == "End Site") return;
+    float zr = isTargetBone ? (float)debugBoneZ : 0;
+    float yr = isTargetBone ? (float)debugBoneY : 0;
+    float xr = isTargetBone ? (float)debugBoneX : 0;
+    Quaternion rot = JointRotator.getUnityQuat(JointRotator.jointToSpace(skel.name, new Vector3(xr, yr, zr)));
+    if (skel.channels.Length == 6)
+    {
+      Vector3 offs = new Vector3(0, 0, 0);
+      //Debug.Log("" + xr + "," + yr + "," + zr);
+      currentFrame.joints[skel.name] = new BVHFrame.Joint(
+          offs,
+          rot
+      );
+    }
+    else
+    {
+      currentFrame.joints[skel.name] = new BVHFrame.Joint(rot);
+    }
+
+    foreach (KeyValuePair<string, BVHSkeleton> kvp in skel.joints)
+    {
+      generateDebugFrameRecursively(kvp.Value, currentFrame);
+    }
+  }
 }
