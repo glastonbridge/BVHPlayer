@@ -1,6 +1,8 @@
 # A BVH Player for Unity
 
-This is some hacky code I wrote for animating BVH files exported from [MocapNET](https://github.com/FORTH-ModelBasedTracker/MocapNET), combined with MakeHuman models that use the [CMU+Face](http://www.makehumancommunity.org/content/cmu_plus_face.html) rig. It's a work in progress, it's not expected to work out of the box. But it's fairly simple and I'm sure you can work out how to extend it to other uses, you smart cookie you.
+! WARNING !  in its current incarnation, this produces incorrect animation. It's stored here to help my workflow, if you need something for your current project please look elsewhere.
+
+This is a hacky Unity plugin I wrote for animating BVH files exported from [MocapNET](https://github.com/FORTH-ModelBasedTracker/MocapNET), combined with MakeHuman models that use the [CMU+Face](http://www.makehumancommunity.org/content/cmu_plus_face.html) rig. It's a work in progress, it's not expected to work out of the box. But it's fairly simple and I'm sure you can work out how to extend it to other uses, you smart cookie you.
 
 # Installation and use
 

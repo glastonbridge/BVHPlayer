@@ -7,7 +7,7 @@ public class BVHFrame
     {
         public Quaternion rot;
         public Vector3? offset;
-        public Joint(Vector3 offset, Quaternion rot)
+        public Joint(Vector3? offset, Quaternion rot)
         {
             this.rot = rot;
             this.offset = offset;

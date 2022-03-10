@@ -83,10 +83,10 @@ public class ParseBVH
             float zr = tokeniser.consumeFloat();
             float yr = tokeniser.consumeFloat();
             float xr = tokeniser.consumeFloat();
-            Vector3 s = JointRotator.jointToSpace(skel.name, new Vector3(xr, yr, zr));
+            Vector3 s = new Vector3(xr, yr, zr);
             currentFrame.joints[skel.name] = new BVHFrame.Joint(
                 offs,
-                JointRotator.getUnityQuat(s)
+                JointRotator.bvhVectorToQuaternion(s)
             );
         }
         else currentFrame.joints[skel.name] = new BVHFrame.Joint(parseJointRotation(skel.name));
@@ -103,9 +103,9 @@ public class ParseBVH
         float x = tokeniser.consumeFloat();
         float y = tokeniser.consumeFloat();
 
-        Vector3 s = JointRotator.jointToSpace(name, new Vector3(x, y, z));
+        Vector3 s = new Vector3(x, y, z);
 
-        return JointRotator.getUnityQuat(s);
+        return JointRotator.bvhVectorToQuaternion(s);
         
     }
 
